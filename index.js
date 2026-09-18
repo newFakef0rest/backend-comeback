@@ -1,30 +1,56 @@
 const express = require("express");
-const cors = require("cors");
 const app = express();
 app.use(express.static("dist"));
 app.use(express.json());
-app.use(cors());
 
 let notes = [
   {
     id: "1",
-    name: "Arto Hellas",
-    number: "040-123456",
+    content: "HTML is easy",
+    important: true,
   },
   {
     id: "2",
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
+    content: "Browser can execute only JavaScript",
+    important: false,
   },
   {
     id: "3",
-    name: "Dan Abramov",
-    number: "12-43-234345",
+    content: "GET and POST are the most important methods of HTTP protocol",
+    important: true,
   },
   {
-    id: "4",
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
+    content: "something",
+    important: false,
+    id: "9yU5z-nSkPQ",
+  },
+  {
+    content: "new text",
+    important: false,
+    id: "iuMaD45m9ak",
+  },
+  {
+    content: "new note",
+    important: false,
+    id: "n_8ug_Uxz-s",
+  },
+];
+
+let persons = [
+  {
+    name: "Arto Hellas",
+    number: "040-123456",
+    id: "1",
+  },
+  {
+    name: "Ada Lovelace",
+    number: "39-44-5323524",
+    id: "2",
+  },
+  {
+    name: "Sobaka sobaka",
+    number: "22222222",
+    id: "mSMzAD79qrE",
   },
 ];
 
@@ -34,6 +60,10 @@ app.get("/", (req, res) => {
 
 app.get("/api/notes", (req, res) => {
   res.json(notes);
+});
+
+app.get("/api/persons", (req, res) => {
+  res.json(persons);
 });
 
 app.get("/api/notes/:id", (req, res) => {
@@ -47,6 +77,17 @@ app.get("/api/notes/:id", (req, res) => {
   }
 });
 
+app.get("/api/persons/:id", (req, res) => {
+  const id = req.params.id;
+  const person = persons.find((note) => note.id === id);
+
+  if (person) {
+    res.json(person);
+  } else {
+    res.status(404).end();
+  }
+});
+
 app.delete("/api/notes/:id", (req, res) => {
   const id = req.params.id;
   notes = notes.filter((note) => note.id !== id);
@@ -54,14 +95,51 @@ app.delete("/api/notes/:id", (req, res) => {
   res.status(204).end();
 });
 
+app.delete("/api/persons/:id", (req, res) => {
+  const id = req.params.id;
+  persons = persons.filter((note) => note.id !== id);
+
+  res.status(204).end();
+});
+
+const generateId = (items) => {
+  const maxId =
+    items.length > 0 ? Math.max(...notes.map((n) => Number(n.id))) : 0;
+  return String(maxId + 1);
+};
+
 app.post("/api/notes", (req, res) => {
-  const note = req.body;
+  const body = req.body;
+
+  if (!body.content) {
+    return res.status(400).json({ error: "content missing" });
+  }
+
+  const note = {
+    id: generateId(notes),
+    content: body.content,
+    important: body.important || false,
+  };
+
+  notes = notes.concat(note);
   res.json(note);
 });
 
-app.get("/info", (req, res) => {
-  res.set("Content-Type", "text/plain");
-  res.send(`Phonebook has info for ${notes.length} people\n${new Date()}`);
+app.post("/api/persons", (req, res) => {
+  const body = req.body;
+
+  if (!body.name || !body.number) {
+    return res.status(400).json({ error: "name or number missing" });
+  }
+
+  const person = {
+    id: generateId(persons),
+    name: body.name,
+    number: body.number,
+  };
+
+  persons = notes.concat(person);
+  res.json(person);
 });
 
 const PORT = process.env.PORT || 3001;
