@@ -1,4 +1,7 @@
+require("dotenv").config();
 const express = require("express");
+const Note = require("./models/note");
+const Phone = require("./models/phone");
 const app = express();
 app.use(express.static("dist"));
 app.use(express.json());
@@ -59,55 +62,62 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/notes", (req, res) => {
-  res.json(notes);
+  Note.find({}).then((notes) => {
+    res.json(notes);
+  });
 });
 
 app.get("/api/persons", (req, res) => {
-  res.json(persons);
-  console.log(persons);
+  Phone.find({}).then((phones) => {
+    res.json(phones);
+  });
 });
 
-app.get("/api/notes/:id", (req, res) => {
-  const id = req.params.id;
-  const note = notes.find((note) => note.id === id);
-
-  if (note) {
-    res.json(note);
-  } else {
-    res.status(404).end();
-  }
+app.get("/api/notes/:id", (request, response) => {
+  Note.findById(request.params.id)
+    .then((note) => {
+      if (note) {
+        response.json(note);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((err) => next(err));
 });
 
 app.get("/api/persons/:id", (req, res) => {
-  const id = req.params.id;
-  const person = persons.find((note) => note.id === id);
-
-  if (person) {
-    res.json(person);
-  } else {
-    res.status(404).end();
-  }
+  Phone.findById(req.params.id)
+    .then((phone) => {
+      if (phone) {
+        res.json(phone);
+      } else {
+        res.status(404).end();
+      }
+    })
+    .catch((err) => next(err));
 });
 
-app.delete("/api/notes/:id", (req, res) => {
-  const id = req.params.id;
-  notes = notes.filter((note) => note.id !== id);
-
-  res.status(204).end();
+app.delete("/api/notes/:id", (request, response, next) => {
+  Note.findByIdAndDelete(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
 });
 
-app.delete("/api/persons/:id", (req, res) => {
-  const id = req.params.id;
-  persons = persons.filter((person) => person.id !== id);
-
-  res.status(204).end();
+app.delete("/api/persons/:id", (request, response, next) => {
+  Phone.findByIdAndDelete(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
 });
 
-const generateId = (items) => {
-  const maxId =
-    items.length > 0 ? Math.max(...notes.map((n) => Number(n.id))) : 0;
-  return String(maxId + 1);
-};
+// const generateId = (items) => {
+//   const maxId =
+//     items.length > 0 ? Math.max(...notes.map((n) => Number(n.id))) : 0;
+//   return String(maxId + 1);
+// };
 
 app.post("/api/notes", (req, res) => {
   const body = req.body;
@@ -116,14 +126,14 @@ app.post("/api/notes", (req, res) => {
     return res.status(400).json({ error: "content missing" });
   }
 
-  const note = {
-    id: generateId(notes),
+  const note = new Note({
     content: body.content,
     important: body.important || false,
-  };
+  });
 
-  notes = notes.concat(note);
-  res.json(note);
+  note.save().then((savedNote) => {
+    res.json(savedNote);
+  });
 });
 
 app.post("/api/persons", (req, res) => {
@@ -133,14 +143,33 @@ app.post("/api/persons", (req, res) => {
     return res.status(400).json({ error: "name or number missing" });
   }
 
-  const person = {
-    id: generateId(persons),
+  const person = new Phone({
     name: body.name,
     number: body.number,
-  };
+  });
 
-  persons = persons.concat(person);
-  res.json(person);
+  person.save().then((savedNote) => {
+    res.json(savedNote);
+  });
+});
+
+app.put("/api/notes/:id", (request, response, next) => {
+  const { content, important } = request.body;
+
+  Note.findById(request.params.id)
+    .then((note) => {
+      if (!note) {
+        return response.status(404).end();
+      }
+
+      note.content = content;
+      note.important = important;
+
+      return note.save().then((updatedNote) => {
+        response.json(updatedNote);
+      });
+    })
+    .catch((error) => next(error));
 });
 
 const PORT = process.env.PORT || 3001;
