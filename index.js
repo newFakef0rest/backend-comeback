@@ -6,57 +6,6 @@ const app = express();
 app.use(express.static("dist"));
 app.use(express.json());
 
-let notes = [
-  {
-    id: "1",
-    content: "HTML is easy",
-    important: true,
-  },
-  {
-    id: "2",
-    content: "Browser can execute only JavaScript",
-    important: false,
-  },
-  {
-    id: "3",
-    content: "GET and POST are the most important methods of HTTP protocol",
-    important: true,
-  },
-  {
-    content: "something",
-    important: false,
-    id: "9yU5z-nSkPQ",
-  },
-  {
-    content: "new text",
-    important: false,
-    id: "iuMaD45m9ak",
-  },
-  {
-    content: "new note",
-    important: false,
-    id: "n_8ug_Uxz-s",
-  },
-];
-
-let persons = [
-  {
-    name: "Arto Hellas",
-    number: "040-123456",
-    id: "1",
-  },
-  {
-    name: "Ada Lovelace",
-    number: "39-44-5323524",
-    id: "2",
-  },
-  {
-    name: "Sobaka sobaka",
-    number: "22222222",
-    id: "mSMzAD79qrE",
-  },
-];
-
 app.get("/", (req, res) => {
   res.send("<h1>Hello, World!</h1>");
 });
@@ -73,7 +22,7 @@ app.get("/api/persons", (req, res) => {
   });
 });
 
-app.get("/api/notes/:id", (request, response) => {
+app.get("/api/notes/:id", (request, response, next) => {
   Note.findById(request.params.id)
     .then((note) => {
       if (note) {
@@ -85,7 +34,7 @@ app.get("/api/notes/:id", (request, response) => {
     .catch((err) => next(err));
 });
 
-app.get("/api/persons/:id", (req, res) => {
+app.get("/api/persons/:id", (req, res, next) => {
   Phone.findById(req.params.id)
     .then((phone) => {
       if (phone) {
@@ -113,13 +62,19 @@ app.delete("/api/persons/:id", (request, response, next) => {
     .catch((error) => next(error));
 });
 
-// const generateId = (items) => {
-//   const maxId =
-//     items.length > 0 ? Math.max(...notes.map((n) => Number(n.id))) : 0;
-//   return String(maxId + 1);
-// };
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
 
-app.post("/api/notes", (req, res) => {
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).json({ error: error.message });
+  }
+
+  next(error);
+};
+
+app.post("/api/notes", (req, res, next) => {
   const body = req.body;
 
   if (!body.content) {
@@ -131,12 +86,15 @@ app.post("/api/notes", (req, res) => {
     important: body.important || false,
   });
 
-  note.save().then((savedNote) => {
-    res.json(savedNote);
-  });
+  note
+    .save()
+    .then((savedNote) => {
+      res.json(savedNote);
+    })
+    .catch((err) => next(err));
 });
 
-app.post("/api/persons", (req, res) => {
+app.post("/api/persons", (req, res, next) => {
   const body = req.body;
 
   if (!body.name || !body.number) {
@@ -148,9 +106,12 @@ app.post("/api/persons", (req, res) => {
     number: body.number,
   });
 
-  person.save().then((savedNote) => {
-    res.json(savedNote);
-  });
+  person
+    .save()
+    .then((savedNote) => {
+      res.json(savedNote);
+    })
+    .catch((err) => next(err));
 });
 
 app.put("/api/notes/:id", (request, response, next) => {
@@ -171,6 +132,8 @@ app.put("/api/notes/:id", (request, response, next) => {
     })
     .catch((error) => next(error));
 });
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
