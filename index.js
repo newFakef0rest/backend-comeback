@@ -64,6 +64,7 @@ app.get("/api/notes", (req, res) => {
 
 app.get("/api/persons", (req, res) => {
   res.json(persons);
+  console.log(persons);
 });
 
 app.get("/api/notes/:id", (req, res) => {
@@ -97,7 +98,7 @@ app.delete("/api/notes/:id", (req, res) => {
 
 app.delete("/api/persons/:id", (req, res) => {
   const id = req.params.id;
-  persons = persons.filter((note) => note.id !== id);
+  persons = persons.filter((person) => person.id !== id);
 
   res.status(204).end();
 });
@@ -138,7 +139,7 @@ app.post("/api/persons", (req, res) => {
     number: body.number,
   };
 
-  persons = notes.concat(person);
+  persons = persons.concat(person);
   res.json(person);
 });
 
