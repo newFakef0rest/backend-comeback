@@ -34,7 +34,7 @@ PhonesRouter.post('/', (req, res, next) => {
   person
     .save()
     .then((savedNote) => {
-      res.json(savedNote)
+      res.status(201).json(savedNote)
     })
     .catch((err) => next(err))
 })
